@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Radio Station</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col justify-between">
+
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <span class="inline-block w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+        <h1 class="text-xl font-bold tracking-wide">AIR-WAVE <span class="text-indigo-400">RADIO</span></h1>
+      </div>
+      <span class="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full font-mono uppercase">Live Broadcast</span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto w-full p-6 grid grid-cols-1 md:grid-cols-3 gap-6 my-auto">
+    
+    <div class="md:col-span-2 bg-slate-800 border border-slate-700/60 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+      
+      <div class="flex flex-col items-center text-center space-y-4 my-6">
+        <div class="relative w-48 h-48 rounded-2xl bg-slate-700 border-2 border-slate-600 overflow-hidden shadow-2xl group">
+          <img id="albumArt" src="https://picsum.photos/400/400?random=1" alt="Album Art" class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+            <span class="text-xs font-semibold uppercase tracking-wider text-white">Station Cover</span>
+          </div>
+        </div>
+
+        <div>
+          <h2 id="nowPlayingTitle" class="text-2xl font-bold text-white tracking-tight">Connecting to station...</h2>
+          <p id="nowPlayingArtist" class="text-slate-400 font-medium">Please wait</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
+        <audio id="radioPlayer" class="w-full rounded-lg" controls>
+          <source src="https://stream.zeno.fm/f3wvbb1ndg8uv" type="audio/mpeg" />
+          Your browser does not support the audio element.
+        </audio>
+        
+        <div class="flex justify-between items-center text-xs text-slate-400 px-1">
+          <span>Up Next: <strong id="upNextTrack" class="text-slate-200">Loading...</strong></span>
+          <span class="text-indigo-400 font-mono">128 kbps MP3</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="space-y-6 flex flex-col justify-between">
+      
+      <div class="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-xl">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+          📅 Today's Schedule
+        </h3>
+        <ul id="scheduleList" class="space-y-3 text-sm">
+          <li class="flex justify-between border-b border-slate-700/50 pb-2">
+            <span class="text-slate-300">Morning Chill</span>
+            <span class="text-indigo-400 font-mono text-xs">08:00 - 12:00</span>
+          </li>
+          <li class="flex justify-between border-b border-slate-700/50 pb-2">
+            <span class="text-slate-300">Indie Beats Live</span>
+            <span class="text-indigo-400 font-mono text-xs">12:00 - 16:00</span>
+          </li>
+          <li class="flex justify-between">
+            <span class="text-slate-300">Nightfall Electronic</span>
+            <span class="text-indigo-400 font-mono text-xs">16:00 - 22:00</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            💬 Listener Shoutouts
+          </h3>
+          <div id="messagesBox" class="h-32 overflow-y-auto space-y-2 text-xs text-slate-300 pr-1">
+            <p class="text-slate-500 italic">No messages yet. Say hi to the DJ!</p>
+          </div>
+        </div>
+
+        <form id="messageForm" class="mt-4 flex gap-2">
+          <input id="messageInput" type="text" placeholder="Send a message to DJ..." required
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <button type="submit" 
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-xs transition">
+            Send
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-800/40 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+    Hosted on GitHub Pages (`/radio`) &bull; Powered by Firebase
+  </footer>
+
+  <script>
+    // 1. Firebase Config (Replace with your actual Firebase Console Credentials)
+    const firebaseConfig = {
+      const firebaseConfig = {
+  apiKey: "AIzaSyBUxmzFjjGIfTx_V9B0u3E5pr5dmBc4IZk",
+  authDomain: "snail-protective-services.firebaseapp.com",
+  projectId: "snail-protective-services",
+  storageBucket: "snail-protective-services.firebasestorage.app",
+  messagingSenderId: "149782048453",
+  appId: "1:149782048453:web:eff4039f4c0f2fa5004aac"
+    };
+
+    // Initialize Firebase if credentials are standard; fallback mock logic provided for immediate preview
+    let db;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    } catch (e) {
+      console.warn("Firebase config not set yet. Running on fallback mock data mode.");
+    }
+
+    // 2. DOM Elements
+    const titleEl = document.getElementById('nowPlayingTitle');
+    const artistEl = document.getElementById('nowPlayingArtist');
+    const upNextEl = document.getElementById('upNextTrack');
+    const albumArtEl = document.getElementById('albumArt');
+    const messagesBox = document.getElementById('messagesBox');
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('messageInput');
+
+    // 3. Listen to Live Track Data from Firebase
+    if (db) {
+      // Listen for "Now Playing" updates from your DJ dashboard or JSON state
+      db.ref('nowPlaying').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          titleEl.textContent = data.title || "Unknown Track";
+          artistEl.textContent = data.artist || "Unknown Artist";
+          upNextEl.textContent = data.upNext || "TBD";
+          if (data.cover) albumArtEl.src = data.cover;
+        }
+      });
+
+      // Listen for real-time messages
+      db.ref('messages').limitToLast(10).on('value', (snapshot) => {
+        messagesBox.innerHTML = "";
+        snapshot.forEach((childSnap) => {
+          const msg = childSnap.val();
+          const msgPara = document.createElement('p');
+          msgPara.className = "bg-slate-900/60 p-2 rounded border border-slate-700/40";
+          msgPara.innerHTML = `<span class="text-indigo-400 font-semibold">Listener:</span> ${msg.text}`;
+          messagesBox.appendChild(msgPara);
+        });
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      });
+    } else {
+      // Fallback preview values
+      titleEl.textContent = "Lo-Fi Beats Live Stream";
+      artistEl.textContent = "Airwave DJ Crew";
+      upNextEl.textContent = "Chillhop Essentials - Synth Dreams";
+    }
+
+    // 4. Handle Live Shoutout Submissions
+    messageForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      if (db) {
+        db.ref('messages').push({
+          text: text,
+          timestamp: Date.now()
+        });
+      } else {
+        const msgPara = document.createElement('p');
+        msgPara.className = "bg-slate-900/60 p-2 rounded border border-slate-700/40";
+        msgPara.innerHTML = `<span class="text-indigo-400 font-semibold">You:</span> ${text}`;
+        messagesBox.appendChild(msgPara);
+      }
+      messageInput.value = "";
+    });
+  </script>
+</body>
+</html>
