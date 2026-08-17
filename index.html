@@ -3,186 +3,245 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live Radio Station</title>
+  <title>Live Radio Station & DJ Panel</title>
   
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase JS SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col justify-between">
 
-  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 sticky top-0 z-50">
+  <!-- Header -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 sticky top-0 z-40">
     <div class="max-w-5xl mx-auto flex justify-between items-center">
       <div class="flex items-center gap-3">
         <span class="inline-block w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
         <h1 class="text-xl font-bold tracking-wide">AIR-WAVE <span class="text-indigo-400">RADIO</span></h1>
       </div>
-      <span class="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full font-mono uppercase">Live Broadcast</span>
+      
+      <div class="flex items-center gap-3">
+        <button id="openAdminBtn" class="text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600 px-3 py-1.5 rounded-lg transition">
+          🎛️ Manage Station
+        </button>
+        <span class="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-full font-mono uppercase">Live</span>
+      </div>
     </div>
   </header>
 
+  <!-- Listener View -->
   <main class="max-w-5xl mx-auto w-full p-6 grid grid-cols-1 md:grid-cols-3 gap-6 my-auto">
     
+    <!-- Player & Track Info -->
     <div class="md:col-span-2 bg-slate-800 border border-slate-700/60 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-      
       <div class="flex flex-col items-center text-center space-y-4 my-6">
-        <div class="relative w-48 h-48 rounded-2xl bg-slate-700 border-2 border-slate-600 overflow-hidden shadow-2xl group">
+        <div class="relative w-48 h-48 rounded-2xl bg-slate-700 border-2 border-slate-600 overflow-hidden shadow-2xl">
           <img id="albumArt" src="https://picsum.photos/400/400?random=1" alt="Album Art" class="w-full h-full object-cover">
-          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
-            <span class="text-xs font-semibold uppercase tracking-wider text-white">Station Cover</span>
-          </div>
         </div>
 
         <div>
-          <h2 id="nowPlayingTitle" class="text-2xl font-bold text-white tracking-tight">Connecting to station...</h2>
-          <p id="nowPlayingArtist" class="text-slate-400 font-medium">Please wait</p>
+          <h2 id="nowPlayingTitle" class="text-2xl font-bold text-white tracking-tight">Loading stream...</h2>
+          <p id="nowPlayingArtist" class="text-slate-400 font-medium">Station DJ</p>
         </div>
       </div>
 
       <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
         <audio id="radioPlayer" class="w-full rounded-lg" controls>
           <source src="https://stream.zeno.fm/f3wvbb1ndg8uv" type="audio/mpeg" />
-          Your browser does not support the audio element.
         </audio>
-        
         <div class="flex justify-between items-center text-xs text-slate-400 px-1">
-          <span>Up Next: <strong id="upNextTrack" class="text-slate-200">Loading...</strong></span>
-          <span class="text-indigo-400 font-mono">128 kbps MP3</span>
+          <span>Up Next: <strong id="upNextTrack" class="text-slate-200">TBD</strong></span>
+          <span class="text-indigo-400 font-mono">128 kbps</span>
         </div>
       </div>
-
     </div>
 
-    <div class="space-y-6 flex flex-col justify-between">
-      
-      <div class="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-xl">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-          📅 Today's Schedule
-        </h3>
-        <ul id="scheduleList" class="space-y-3 text-sm">
-          <li class="flex justify-between border-b border-slate-700/50 pb-2">
-            <span class="text-slate-300">Morning Chill</span>
-            <span class="text-indigo-400 font-mono text-xs">08:00 - 12:00</span>
-          </li>
-          <li class="flex justify-between border-b border-slate-700/50 pb-2">
-            <span class="text-slate-300">Indie Beats Live</span>
-            <span class="text-indigo-400 font-mono text-xs">12:00 - 16:00</span>
-          </li>
-          <li class="flex justify-between">
-            <span class="text-slate-300">Nightfall Electronic</span>
-            <span class="text-indigo-400 font-mono text-xs">16:00 - 22:00</span>
-          </li>
-        </ul>
-      </div>
-
-      <div class="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
-        <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
-            💬 Listener Shoutouts
-          </h3>
-          <div id="messagesBox" class="h-32 overflow-y-auto space-y-2 text-xs text-slate-300 pr-1">
-            <p class="text-slate-500 italic">No messages yet. Say hi to the DJ!</p>
-          </div>
+    <!-- Song Request Box -->
+    <div class="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+      <div>
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">🎵 Submit Song Request</h3>
+        <div id="requestLog" class="h-48 overflow-y-auto space-y-2 text-xs text-slate-300 pr-1">
+          <p class="text-slate-500 italic">No recent requests.</p>
         </div>
-
-        <form id="messageForm" class="mt-4 flex gap-2">
-          <input id="messageInput" type="text" placeholder="Send a message to DJ..." required
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-          <button type="submit" 
-            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-xs transition">
-            Send
-          </button>
-        </form>
       </div>
 
+      <form id="requestForm" class="mt-4 flex flex-col gap-2">
+        <input id="requestInput" type="text" placeholder="Song title or artist..." required
+          class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg text-xs transition">
+          Send Request
+        </button>
+      </form>
     </div>
 
   </main>
 
+  <!-- Admin Modal (Auth + Dashboard) -->
+  <div id="adminModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl">
+      <button id="closeAdminBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+
+      <!-- Login View -->
+      <div id="loginView" class="space-y-4">
+        <h3 class="text-lg font-bold text-white">DJ Admin Login</h3>
+        <p class="text-xs text-slate-400">Sign in to manage live tracks and song requests.</p>
+        <form id="loginForm" class="space-y-3">
+          <input id="adminEmail" type="email" placeholder="Admin Email" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white">
+          <input id="adminPass" type="password" placeholder="Password" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white">
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2.5 rounded-lg font-medium">Log In</button>
+        </form>
+      </div>
+
+      <!-- Admin Control Panel (Hidden until authenticated) -->
+      <div id="dashboardView" class="space-y-6 hidden">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <h3 class="text-lg font-bold text-white">🎧 Station Control Room</h3>
+          <button id="logoutBtn" class="text-xs text-red-400 hover:underline">Log Out</button>
+        </div>
+
+        <!-- Live Track Controls -->
+        <form id="updateTrackForm" class="space-y-3">
+          <h4 class="text-xs font-semibold text-indigo-400 uppercase">Update Now Playing</h4>
+          <input id="inputTitle" type="text" placeholder="Song Title" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+          <input id="inputArtist" type="text" placeholder="Artist Name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+          <input id="inputUpNext" type="text" placeholder="Up Next Track" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+          <input id="inputCover" type="url" placeholder="Cover Image URL (Optional)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+          <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white text-xs py-2 rounded-lg font-medium">Broadcast Live Update</button>
+        </form>
+
+        <!-- Live Song Requests Management -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-semibold text-indigo-400 uppercase">Incoming Song Requests</h4>
+          <div id="adminRequestsList" class="max-h-36 overflow-y-auto space-y-2 text-xs">
+            <!-- Populated in real-time -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <footer class="bg-slate-800/40 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-    Hosted on GitHub Pages (`/radio`) &bull; Powered by Firebase
+    Hosted on GitHub Pages (`/radio`) &bull; Realtime Firebase Sync
   </footer>
 
   <script>
-    // 1. Firebase Config (Replace with your actual Firebase Console Credentials)
+    // 1. Firebase Configuration
     const firebaseConfig = {
-      const firebaseConfig = {
-  apiKey: "AIzaSyBUxmzFjjGIfTx_V9B0u3E5pr5dmBc4IZk",
+      apiKey: "AIzaSyBUxmzFjjGIfTx_V9B0u3E5pr5dmBc4IZk",
   authDomain: "snail-protective-services.firebaseapp.com",
   projectId: "snail-protective-services",
   storageBucket: "snail-protective-services.firebasestorage.app",
   messagingSenderId: "149782048453",
   appId: "1:149782048453:web:eff4039f4c0f2fa5004aac"
+  
     };
 
-    // Initialize Firebase if credentials are standard; fallback mock logic provided for immediate preview
-    let db;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-    } catch (e) {
-      console.warn("Firebase config not set yet. Running on fallback mock data mode.");
-    }
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-    // 2. DOM Elements
-    const titleEl = document.getElementById('nowPlayingTitle');
-    const artistEl = document.getElementById('nowPlayingArtist');
-    const upNextEl = document.getElementById('upNextTrack');
-    const albumArtEl = document.getElementById('albumArt');
-    const messagesBox = document.getElementById('messagesBox');
-    const messageForm = document.getElementById('messageForm');
-    const messageInput = document.getElementById('messageInput');
+    // Elements
+    const adminModal = document.getElementById('adminModal');
+    const openAdminBtn = document.getElementById('openAdminBtn');
+    const closeAdminBtn = document.getElementById('closeAdminBtn');
+    const loginView = document.getElementById('loginView');
+    const dashboardView = document.getElementById('dashboardView');
+    const loginForm = document.getElementById('loginForm');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const updateTrackForm = document.getElementById('updateTrackForm');
+    const requestForm = document.getElementById('requestForm');
+    const requestInput = document.getElementById('requestInput');
 
-    // 3. Listen to Live Track Data from Firebase
-    if (db) {
-      // Listen for "Now Playing" updates from your DJ dashboard or JSON state
-      db.ref('nowPlaying').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          titleEl.textContent = data.title || "Unknown Track";
-          artistEl.textContent = data.artist || "Unknown Artist";
-          upNextEl.textContent = data.upNext || "TBD";
-          if (data.cover) albumArtEl.src = data.cover;
-        }
-      });
+    // Toggle Modal
+    openAdminBtn.onclick = () => adminModal.classList.remove('hidden');
+    closeAdminBtn.onclick = () => adminModal.classList.add('hidden');
 
-      // Listen for real-time messages
-      db.ref('messages').limitToLast(10).on('value', (snapshot) => {
-        messagesBox.innerHTML = "";
-        snapshot.forEach((childSnap) => {
-          const msg = childSnap.val();
-          const msgPara = document.createElement('p');
-          msgPara.className = "bg-slate-900/60 p-2 rounded border border-slate-700/40";
-          msgPara.innerHTML = `<span class="text-indigo-400 font-semibold">Listener:</span> ${msg.text}`;
-          messagesBox.appendChild(msgPara);
-        });
-        messagesBox.scrollTop = messagesBox.scrollHeight;
-      });
-    } else {
-      // Fallback preview values
-      titleEl.textContent = "Lo-Fi Beats Live Stream";
-      artistEl.textContent = "Airwave DJ Crew";
-      upNextEl.textContent = "Chillhop Essentials - Synth Dreams";
-    }
-
-    // 4. Handle Live Shoutout Submissions
-    messageForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = messageInput.value.trim();
-      if (!text) return;
-
-      if (db) {
-        db.ref('messages').push({
-          text: text,
-          timestamp: Date.now()
-        });
+    // Auth state observer
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginView.classList.add('hidden');
+        dashboardView.classList.remove('hidden');
       } else {
-        const msgPara = document.createElement('p');
-        msgPara.className = "bg-slate-900/60 p-2 rounded border border-slate-700/40";
-        msgPara.innerHTML = `<span class="text-indigo-400 font-semibold">You:</span> ${text}`;
-        messagesBox.appendChild(msgPara);
+        loginView.classList.remove('hidden');
+        dashboardView.classList.add('hidden');
       }
-      messageInput.value = "";
+    });
+
+    // Admin Login
+    loginForm.onsubmit = (e) => {
+      e.preventDefault();
+      const email = document.getElementById('adminEmail').value;
+      const pass = document.getElementById('adminPass').value;
+      auth.signInWithEmailAndPassword(email, pass).catch(err => alert(err.message));
+    };
+
+    // Admin Logout
+    logoutBtn.onclick = () => auth.signOut();
+
+    // Broadcast Track Update to Firebase
+    updateTrackForm.onsubmit = (e) => {
+      e.preventDefault();
+      db.ref('nowPlaying').set({
+        title: document.getElementById('inputTitle').value,
+        artist: document.getElementById('inputArtist').value,
+        upNext: document.getElementById('inputUpNext').value,
+        cover: document.getElementById('inputCover').value || 'https://picsum.photos/400/400?random=1'
+      }).then(() => alert("Broadcast updated live!"));
+    };
+
+    // Public Submit Song Request
+    requestForm.onsubmit = (e) => {
+      e.preventDefault();
+      const text = requestInput.value.trim();
+      if (!text) return;
+      db.ref('requests').push({ text, timestamp: Date.now() });
+      requestInput.value = "";
+    };
+
+    // Listen to "Now Playing" Updates
+    db.ref('nowPlaying').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        document.getElementById('nowPlayingTitle').textContent = data.title;
+        document.getElementById('nowPlayingArtist').textContent = data.artist;
+        document.getElementById('upNextTrack').textContent = data.upNext;
+        if (data.cover) document.getElementById('albumArt').src = data.cover;
+      }
+    });
+
+    // Listen to Song Requests (Realtime)
+    db.ref('requests').limitToLast(15).on('value', (snapshot) => {
+      const requestLog = document.getElementById('requestLog');
+      const adminList = document.getElementById('adminRequestsList');
+      requestLog.innerHTML = "";
+      adminList.innerHTML = "";
+
+      snapshot.forEach((childSnap) => {
+        const req = childSnap.val();
+        const key = childSnap.key;
+
+        // Listener display
+        const p = document.createElement('p');
+        p.className = "bg-slate-900/60 p-2 rounded border border-slate-700/40";
+        p.textContent = `🎵 ${req.text}`;
+        requestLog.appendChild(p);
+
+        // Admin dashboard display with clear button
+        const item = document.createElement('div');
+        item.className = "bg-slate-900 p-2 rounded flex justify-between items-center border border-slate-700";
+        item.innerHTML = `<span>${req.text}</span>`;
+        
+        const delBtn = document.createElement('button');
+        delBtn.className = "text-red-400 hover:text-red-300 ml-2";
+        delBtn.textContent = "Done";
+        delBtn.onclick = () => db.ref(`requests/${key}`).remove();
+        
+        item.appendChild(delBtn);
+        adminList.appendChild(item);
+      });
     });
   </script>
 </body>
