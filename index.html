@@ -34,15 +34,15 @@
         </div>
 
         <div>
-          <h2 id="nowPlayingTitle" class="text-2xl font-bold text-white tracking-tight">Loading Stream...</h2>
-          <p id="nowPlayingArtist" class="text-slate-400 font-medium">Station Auto-DJ</p>
+          <h2 id="nowPlayingTitle" class="text-2xl font-bold text-white tracking-tight">Snail Radio 24/7</h2>
+          <p id="nowPlayingArtist" class="text-slate-400 font-medium">Loading Track Info...</p>
         </div>
       </div>
 
       <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
         <!-- Live Audio Stream Direct Source -->
-        <audio id="radioPlayer" class="w-full rounded-lg" controls autoplay>
-          <source src="https://YOUR_ICECAST_SERVER_URL/live" type="audio/mpeg" />
+        <audio id="radioPlayer" class="w-full rounded-lg" controls preload="none">
+          <source src="/live.mp3" type="audio/mpeg" />
           Your browser does not support live streams.
         </audio>
         <div class="flex justify-between items-center text-xs text-slate-400 px-1">
@@ -97,8 +97,8 @@
         <!-- Metadata Manager -->
         <form id="updateTrackForm" class="space-y-3">
           <h4 class="text-xs font-semibold text-indigo-400 uppercase">Override Live Track Info</h4>
-          <input id="inputTitle" type="text" placeholder="Current Song Title" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
-          <input id="inputArtist" type="text" placeholder="Artist / Show Name" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+          <input id="inputTitle" type="text" placeholder="Current Song Title" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white" required>
+          <input id="inputArtist" type="text" placeholder="Artist / Show Name" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white" required>
           <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white text-xs py-2 rounded-lg font-medium">Push Metadata Update</button>
         </form>
 
@@ -114,23 +114,26 @@
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBUxmzFjjGIfTx_V9B0u3E5pr5dmBc4IZk",
-  authDomain: "snail-protective-services.firebaseapp.com",
-  projectId: "snail-protective-services",
-  storageBucket: "snail-protective-services.firebasestorage.app",
-  messagingSenderId: "149782048453",
-  appId: "1:149782048453:web:eff4039f4c0f2fa5004aac"
-  
+      authDomain: "snail-protective-services.firebaseapp.com",
+      projectId: "snail-protective-services",
+      storageBucket: "snail-protective-services.firebasestorage.app",
+      messagingSenderId: "149782048453",
+      appId: "1:149782048453:web:eff4039f4c0f2fa5004aac"
     };
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // UI Bindings & Authentication logic
+    // UI Elements
     const adminModal = document.getElementById('adminModal');
+    const radioPlayer = document.getElementById('radioPlayer');
+    const streamStatus = document.getElementById('streamStatus');
+
     document.getElementById('openAdminBtn').onclick = () => adminModal.classList.remove('hidden');
     document.getElementById('closeAdminBtn').onclick = () => adminModal.classList.add('hidden');
 
+    // Auth state management
     auth.onAuthStateChanged(user => {
       document.getElementById('loginView').classList.toggle('hidden', !!user);
       document.getElementById('dashboardView').classList.toggle('hidden', !user);
@@ -146,10 +149,36 @@
 
     document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
-    // Sync Requests
+    // DJ Pushing New Track Metadata
+    document.getElementById('updateTrackForm').onsubmit = (e) => {
+      e.preventDefault();
+      const title = document.getElementById('inputTitle').value;
+      const artist = document.getElementById('inputArtist').value;
+
+      db.ref('nowPlaying').set({
+        title: title,
+        artist: artist,
+        updatedAt: Date.now()
+      }).then(() => {
+        alert('Metadata updated across all listener clients!');
+      });
+    };
+
+    // Live Sync Now Playing metadata for listeners
+    db.ref('nowPlaying').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        document.getElementById('nowPlayingTitle').textContent = data.title || "24/7 Live Stream";
+        document.getElementById('nowPlayingArtist').textContent = data.artist || "Snail Radio";
+      }
+    });
+
+    // Handle Song Requests
     document.getElementById('requestForm').onsubmit = (e) => {
       e.preventDefault();
       const input = document.getElementById('requestInput');
+      if (!input.value.trim()) return;
+      
       db.ref('requests').push({ text: input.value, timestamp: Date.now() });
       input.value = "";
     };
@@ -159,6 +188,11 @@
       const adminList = document.getElementById('adminRequestsList');
       requestLog.innerHTML = "";
       adminList.innerHTML = "";
+
+      if (!snapshot.exists()) {
+        requestLog.innerHTML = '<p class="text-slate-500 italic">No recent requests.</p>';
+        return;
+      }
 
       snapshot.forEach(child => {
         const data = child.val();
@@ -172,10 +206,24 @@
         // Admin View
         const item = document.createElement('div');
         item.className = "bg-slate-900 p-2 rounded flex justify-between items-center border border-slate-700";
-        item.innerHTML = `<span>${data.text}</span><button onclick="firebase.database().ref('requests/${child.key}').remove()" class="text-red-400 text-xs">Dismiss</button>`;
+        item.innerHTML = `<span>${data.text}</span><button onclick="firebase.database().ref('requests/${child.key}').remove()" class="text-red-400 text-xs hover:underline">Dismiss</button>`;
         adminList.appendChild(item);
       });
     });
+
+    // Stream status indicator
+    radioPlayer.onplaying = () => {
+      streamStatus.textContent = "Live Broadcast";
+      streamStatus.className = "text-green-400 font-bold";
+    };
+    radioPlayer.onwaiting = () => {
+      streamStatus.textContent = "Buffering...";
+      streamStatus.className = "text-yellow-400 font-bold";
+    };
+    radioPlayer.onpause = () => {
+      streamStatus.textContent = "Paused";
+      streamStatus.className = "text-slate-400";
+    };
   </script>
 </body>
 </html>
